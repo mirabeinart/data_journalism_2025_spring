@@ -43,3 +43,6 @@ library(tidyverse)
 #print will take a string and return it in the terminal
 print("Hello World!)
 ```
+```{r}
+#using glimpse will give you the columns, data types, and the first few rows of data
+```
