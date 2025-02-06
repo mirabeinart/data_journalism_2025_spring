@@ -77,7 +77,7 @@ arrange(count_charge)
 
 **Q4** Why do you think there are so many charges identified in **A3** that are tied for the least common? Hint: You can't answer this question with code.
 
-**A4** I think because there are a lot of different charges, a lot of them that mean the same thing, but with specific terms that make them ever so slightly different, which sorts them into their own category in the data. 
+**A4** I think because there are a lot of different charges, a lot of them that mean the same thing, but with specific terms that make them ever so slightly different, which sorts them into their own category in the data. Also, the data is all entered by humans, so there's a chance that people use different acronyms and/or make spelling errors.
 
 **Q5** Which prosecutor has prosecuted the most charges against homeless people? Is the top prosecutor related to any famous Floridians?
 
