@@ -51,3 +51,7 @@ print("Hello World!)
 #using glimpse will give you the columns, data types, and the first few rows of data
 #read_rds("data/file.rds") takes an input (the text in quotations, chr string) and gives us an output 
 ```
+```{r}
+#head(primary_24), summary(primary_24), colnames(primary_24), glimpse(primary_24)
+```
+```

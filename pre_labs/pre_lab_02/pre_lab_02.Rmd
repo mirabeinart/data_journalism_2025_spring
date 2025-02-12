@@ -59,7 +59,7 @@ primary_24 |>
 
 Describe what you think this code is doing below.
 
-**Answer**
+**Answer** The code is creating a new column for what percent of votes were cast on election day, rather than early voting or mail-in ballots by taking values from 2 existing columns (election_day and votes) and calculating the difference between the two. 
 
 ### Task 5: Better percentage calculation
 
@@ -90,7 +90,7 @@ primary_24 |>
 
 How did the results change from the previous task, and why?
 
-**Answer**
+**Answer** The results are different from the previous task because they are now ordered from highest percentage of votes on election day (100%) to the lowest (0%).
 
 ### Task 7: Mutate with ordering, part 2
 
@@ -108,7 +108,7 @@ primary_24 |>
 
 Is this a more interesting or useful answer? Why?
 
-**Answer**
+**Answer** This answer shows us which candidates had the least amount of election day votes compared to total votes, which can show us which candidates relied more heavily on early voting and mail-in ballots. 
 
 ### Task 8: Standardize existing data using mutate
 
@@ -138,7 +138,7 @@ standardized_maryland_cities <- maryland_cities |>
 
 **Task** Search the Internet for tidyverse functions similar to str_to_upper. Name at least two and describe what they do.
 
-**Answer**
+**Answer** str_to_lower() converts a character column into lowercase, and str_to_title() converts to title case, where the first letter of each word is capitalized (https://stringr.tidyverse.org/reference/case.html)
 
 There are lots of potential uses for standardization - addresses, zip codes, anything that can be misspelled or abbreviated.
 
