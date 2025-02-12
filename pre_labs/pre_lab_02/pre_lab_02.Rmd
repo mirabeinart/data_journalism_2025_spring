@@ -166,7 +166,7 @@ Now that we've gotten a look, we can use `case_when` to give our new category co
 
 **Task** Run the following code and look at the output. Then write a sentence or two describing what you think the mutate statement is doing step by step.
 
-**Answer**
+**Answer** By using mutate(), we are creating a new column, amount_category, based on the "amount" column, which reflects the monetary amount of each donation. Then, using case_when(), we are creating conditions for each amount_category based on the number in the amount column -- if it's less than 100, it gets tagged "Less than $100," if it's greater than or equal to 100 but less than 500, it gets tagged at "Between 100 and 499," and so on. 
 
 ```{r}
 maryland_winred_categories <- maryland_winred_contributions |>
@@ -196,7 +196,7 @@ maryland_winred_categories |>
 ```
 What's the largest category in terms of dollar amount?
 
-**Answer** 
+**Answer** Less than $100
 
 Mutate is there to make your data more useful and to make it easier for you to ask more and better questions of it.
 
@@ -244,7 +244,7 @@ And now we only have five columns of data for whatever analysis we might want to
 
 Notice that we made a new variable to hold the result. Why is that important?
 
-**Answer**
+**Answer** I think it's important because it doesn't change the original dataset with whatever analysis we might want to do.
 
 ### Task 12: Combining filters
 
@@ -306,7 +306,7 @@ maryland_expenses <- maryland_expenses |> mutate(expenditure_date=mdy(expenditur
 head(maryland_expenses)
 ```
 
-**Answer:**
+**Answer:** The code changed the expentidure_date column into date format rather than character.
 
 Lubridate has functions for basically any type of character date format: mdy, ymd, even datetimes like ymd_hms.
 
@@ -342,4 +342,4 @@ So the month of June 2022 had the most expenditures by far in this data. We'll b
 
 Describe the values in the new `month` column - what do you think the data is showing here?
 
-**Answer**
+**Answer** The values in the month column groups all expenditures from the same month into one column, adding them all together. This is showing trends in spending based on month, with June being the highest.
