@@ -1,0 +1,124 @@
+---
+title: "lab_02"
+author: "derek willis"
+date: "2024-08-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries and establish settings
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# Load the tidyverse. If you have not installed the tidyverse already, remove the # from the next line and run it first.  
+# install.packages('tidyverse')
+library(tidyverse)
+library(lubridate)
+```
+
+## Load Data
+
+For this lab we'll be working with a slice of Maryland voter registration data: records of people who have registration dates this year through Aug. 7. Let's load it.
+
+```{r}
+md_voters_2024 <- read_rds("data/lab_02.rds")
+```
+
+## Examine Data
+
+Take a look at the data, getting familiar with what it contains. Most of the columns should be self-explanatory, but there are two date columns: STATE_REGISTRATION_DATE and COUNTY_REGISTRATION_DATE. The former represents the date the person registered as a Maryland voter; the latter is when they registered in their current county. They may be the same, but if a voter moves from one county to another they will differ. This is important because if the two dates are the same, that's a pretty good indication that this is a *new* voter, someone who has no history of registering in Maryland. You'll need to keep that definition in mind.
+
+```{r}
+head(md_voters_2024)
+```
+
+
+## Answer questions
+
+**Q1** How many voters appear to be *new* registrants since July 21, when President Joe Biden announced he would leave the race, based on the information above? Create a dataframe to hold the only those voters. Which counties have seen the most? Take a look at county population figures here and compare the two in your answer: https://worldpopulationreview.com/us-counties/maryland.
+
+**A1** There are 17,106 new voters total in Maryland since July 21 when Biden announced he would leave the race. Montgomery County saw the highest number of newly registered voters, almost double Baltimore City and Baltimore County. Somerset County saw the least with 31 new registrants. According to the county population data you provided, MoCo has the largest population compared to other counties, so it makes sense they'd have the most newly registered voters. However, Baltimore City is the 5th largest county but saw the second largest increase in registered voters. 
+
+```{r}
+new_voters <- md_voters_2024 |> filter(STATE_REGISTRATION_DATE >= '2024-07-21') 
+    
+```
+```{r}
+new_voters |>
+  group_by(COUNTY) |>
+  summarise(
+    count_county = n()
+  ) |>
+  arrange(desc(count_county))
+```
+
+**Q2** A better question is whether the new voters you found in Q1 are an outlier compared to other weeks this year. Using the original dataframe with 2024 registrants, use `mutate()` and lubridate to produce week numbers from the COUNTY_REGISTRATION_DATE (Lubridate has a function that turns a date into a week number. Use that to answer this question). Save that to the original dataframe. Then calculate how many voters are in each week. Describe the distribution of voters groups in a sentence - are the weeks from July 21-August 7 different from the rest, and if so, how?
+
+**A2** Generally, more people newly registered to vote in the later weeks, presumably once Biden announced he'd leave the race. The weeks from 7/21 to 8/7 include 29, 30, 31, and 32, so it makes sense that 30 and 31 are the second and third highest weeks among voter registration count.
+
+```{r}
+md_voters_2024 <- md_voters_2024 |>
+  mutate(week_number=week(COUNTY_REGISTRATION_DATE))
+```
+```{r}
+md_voters_2024 |>
+  group_by(week_number) |>
+  summarise(
+    voter_count=n()
+  ) |>
+  arrange(desc(voter_count))
+```
+
+
+
+**Q3** Using lubridate, show which month saw the largest number of registrations. Does the answer help shed more light on Q2?
+**A3** Using months instead of week numbers is more helpful as I (along with I'm assuming most other humans) understand the numerical months much more than weeks. Seeing that July saw the highest number of new voter registrations, it makes more sense than week 30 or 31 because we can make more sense of the data -- Biden announced he'd be dropping out of the race in July, so it makes sense that July saw by far the highest number of new voter registrations.
+
+```{r}
+md_voters_2024 <- md_voters_2024 |>
+  mutate(month=month(COUNTY_REGISTRATION_DATE))
+```
+```{r}
+md_voters_2024 |>
+  group_by(month) |>
+  summarise(
+    month_count=n()
+  ) |>
+  arrange(desc(month_count))
+```
+
+
+**Q4** Maryland has, officially, five regions: https://www.visitmaryland.org/article/maryland-regions. Modify the original dataframe again to add a `region` column based on the `COUNTY` value using case_when. Are you going to have to do this for every Maryland county plus Baltimore City? Yes, you are. Which regions and parties account for the most new voters?
+
+**A4** Democrats in the Capital region account for the most new voters, with unaffiliated voters in the Capital region a somewhat-close second. I really hope I did this all right.
+
+```{r}
+# I used ChatGPT for help with the cqse_when -- i asked it lots of questions and it told me that I could use %in% instead of str_detect because the counties should be spelled correctly every time, so I don't need to detect a certain character string in the column. 
+md_voters_2024 <- md_voters_2024 |> 
+  mutate(region = case_when(
+    COUNTY %in% c("Allegany", "Garrett", "Washington") ~ "Western",
+    COUNTY %in% c("Baltimore", "Baltimore City", "Carroll", "Harford", "Howard") ~ "Central",
+    COUNTY %in% c("Montgomery", "Prince George's") ~ "Capital",
+    COUNTY %in% c("Anne Arundel", "Calvert", "Charles", "St. Mary's") ~ "Southern",
+    COUNTY %in% c("Caroline", "Cecil", "Dorchester", "Kent", "Queen Anne's", "Somerset", "Talbot", "Wicomico", "Worcester") ~ "Eastern Shore",
+    )
+  )
+```
+```{r}
+md_voters_2024 |>
+  group_by(region, PARTY) |>
+  summarise(
+    total_region=n()
+  ) |>
+  arrange(desc(total_region))
+```
+
+
+**Q5** What's an additional question you could ask of this data?
+
+**A5** I would want to look at the gender of new registered voters, as well as age, but I don't see birth dates on the original dataset. Additionally, throughout this lab we've been continuously looking at the data on larger and larger scales (county, region, state), but I think it would be interesting to look at it on a closer level, like street or neighborhood. Like you were saying in class today, it could be really cool to go on a map and see whether your street was more Dem or Republican. Along those lines, it could be interesting to see what percentage of newly registered voters on each street either registered with a party (and which one), or if they registered as an unaffiliated voter. 
