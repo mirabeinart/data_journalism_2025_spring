@@ -1,0 +1,122 @@
+---
+title: "lab_03"
+author: "Derek Willis"
+date: "2024-08-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries and establish settings
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# Load the tidyverse
+library(tidyverse)
+
+# Load janitor
+library(janitor)
+```
+
+## Load data
+
+```{r}
+# Load MD slice of FEC House candidate contribution data
+md_contribs <- read_rds("data/lab_03.rds") |>
+  clean_names() |>
+  mutate(contributor_zip = str_sub(contributor_zip, start=1L, end=5L)) 
+
+```
+
+## Fix header issues
+
+You'll need to fix one issue with the column names using janitor. Write a code block to do that, making sure that you save the results to the same dataframe.
+
+```{r}
+md_contribs <- md_contribs |>
+  clean_names()
+```
+
+
+## Answer questions
+
+Q1: Which seven cities in Maryland had the largest *number* of contributions from donors? How many did each have? To answer this question, you'll have to clean the messy "contributor_city" field.
+
+Note: To answer this question, you'll need to see every variation of the "contributor_city" for the top seven cities, which you should identify through some initial analysis. Then find variations of them and change those variations into the most common version.
+
+A1: The top seven cities with numbers are as follows:
+1. Bethesda, with 1,177 contributions
+2. Chevy Chase, with 704 contributions
+3. Baltimore, with 690 contributions
+4. Annapolis, with 490 contributions
+5. Potomac, with also 490 contributions
+6. Silver Spring, with 405 contributions
+and 7. Rockville, with 358 contributions.
+
+```{r}
+md_contribs |>
+  
+  
+mutate(contributor_city = case_when(
+  contributor_city == "BALRIMORE" ~ "BALTIMORE",
+  contributor_city == "BLATIMORE" ~ "BALTIMORE",
+  contributor_city == "POTAMIC" ~ "POTOMAC",
+  contributor_city == "SILVER SPRINGS" ~ "SILVER SPRING",
+  contributor_city == "ANAPOLIS" ~ "ANNAPOLIS",
+  TRUE ~ contributor_city
+))
+
+md_contribs |>
+  group_by(contributor_city) |>
+  summarise(
+    count_city = n()
+  ) |>
+arrange(desc(count_city))
+```
+
+Q2: Find the 5-digit ZIP code in Maryland that had the highest total amount of contributions (by dollar value). You will need to use mutate to ensure that you have a zip code column with the first five characters from the existing zip code column.
+
+Where is that zip code and what kind of area is it, demographically? Which committee is the largest recipient of money from that zip code? How many of the top five recipients are Maryland candidates?
+
+**A2: 20817 (very rich) has the highest total amount of contributions at $731,489.80. Sheila Cherfilus McCormick for Congress and Yvette4Congress are the committees with the largest amount of donations with $5,000. Zero of the top five candidates are from Maryland. Peculiar.  **
+
+```{r}
+total_moneys <- md_contribs |>
+  mutate(contributor_zip = str_sub(contributor_zip, start=1L, end=5L)) |>
+group_by(contributor_zip) |>
+  summarise(total_contrib = sum(contribution_receipt_amount)) |>
+  arrange(desc(total_contrib))
+
+total_moneys
+
+md_contribs |>
+  filter(contributor_zip == "20817") |>
+  group_by(committee_name) |>
+  summarise(rich_people = sum(contribution_receipt_amount)) |>
+  arrange(desc(rich_people))
+```
+```{r}
+
+```
+
+Q3: Let's look at top individual donors. Write code to generate a list of top donors using name and city, adding up the total amount of contributions. What does the original data say about the top two donors - who are they and what do they do? Do you see anything in the list of top 10 donors that would make you uncertain about the accuracy of these results? 
+
+A3: The top two donors are Mark and Melanie Jacobsen - I am assuming they are married. Mark is a therapist and Melanie is a lawyer. So it makes sense that they are rich and donate a lot of money to political campaigns. The 5th person on the list is Mark Jacobsen, as opposed to Mark P. Jacobsen (the second top donor), so there's a chance that people lower on the list are labeled as different things, and then they could be higher on the list if we added them all together. 
+
+```{r}
+even_richer <- md_contribs |>
+  group_by(contributor_name, contributor_city) |>
+  summarise(lots_of_moneys = sum(contribution_receipt_amount)) |>
+  arrange(desc(lots_of_moneys))
+
+
+even_richer
+
+
+
+
+```
