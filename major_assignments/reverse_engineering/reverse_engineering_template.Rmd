@@ -1,6 +1,6 @@
 ---
 title: "Reverse Engineering Project"
-author: "Student names here"
+author: "mira beinart"
 date: "Date here"
 output:
   html_document:
@@ -25,7 +25,10 @@ In this notebook, we are reverse engineering the story, [STORY NAME](STORY URL)
 Loading required libraries for this analysis.
 
 ```{r echo=FALSE, message=FALSE}
-
+library(tidyverse)
+library(lubridate)
+install.packages("zipcodeR")
+library(zipcodeR) #this one took so long wow
 ```
 
 ## Load and Cleaning Data
@@ -34,12 +37,14 @@ In this section, describe the source of the data, write a basic data dictionary 
 
 ```{r}
 # Load required data
-
+moore_donations <- read_csv("data/wesmoore.csv")
 # Path to data should be loaded from folder "data" i.e. read_csv("data/name_of_data.csv")
 
 # Clean required data and prepare for analysis if needed. 
 
-
+moore_donations |>
+   mutate(contributor_zip = str_sub(`Contributor Address`, -5, -1)) |>
+   mutate(state = reverse_zipcode(contributor_zip)$state)
 ```
 
 ## Sentences to Engineer
