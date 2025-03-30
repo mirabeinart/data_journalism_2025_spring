@@ -46,40 +46,49 @@ Next join the Harris donations to the voter data. Remember, people's names are c
 # join the combined Harris file to the new voters
 # you will need to determine what columns to use
 
-summer_contributions |>
-  mutate(zip=as.character(zip))
 
-new_voters |>
-  mutate(ResidentialZip=as.character(ResidentialZip)) 
 
-harris_new_voters <- left_join(
-  summer_contributions, new_voters,
-  by = c("last_name" = "LastName", 
-         "first_name" = "FirstName", 
-         "middle_name" = "MiddleName", 
-         "zip" = "ResidentialZip")
-) 
+
+harris_new_voters <- summer_contributions |>
+  inner_join(new_voters, join_by(
+    address_one == Address,
+    last_name == LastName,
+    first_name == FirstName,
+    city == ResidentialCity,
+  ))
+
 ```
 
 ## Answer questions
 
 Q1. Explain why you used the columns you did to make the join, and why that result is better than other ways you tried. Are there any problems with the join you made, such as the possibility of false positives?
 
-A1. 
+A1. I joined the name, address, and city columns because they are the ones that are most likely to be similar between the two datasets. 
 
 Q2. Based on your join, how many donations to Harris have come from people who registered this year? How many unique people does that represent, and which donors have given the largest _number_ of donations since July 20? 
 
-A2. 
+A2. 326 donations have come from people who registered to vote this year. 283 unique people. Brandyn Best has given the highest number of donations (5) since July 20.
 
 ```{r}
+harris_new_voters |>
+  filter(CountyRegistrationDate >= mdy("07/20/24")) |>
+  group_by(first_name, last_name) |>
+  summarise(count = n()) |>
+  arrange(desc(count))
 ```
 
 Q3. What are the party and gender breakdowns of those donors? How many donations has Harris gotten from non-Democrats?
 
-A3. 
+A3. 160 female Democrats, 123 male Democrats, and not that many Republicans. 32 total donations from non-Democrats.
 
 ```{r}
+library(janitor)
 
+harris_new_voters |>
+  group_by(Party, Gender) |>
+  summarise(count = n()) |>
+  filter(Party != "DEM") |>
+  adorn_totals("row")
 ```
 
 Q4. Choose your own adventure: I want you to come up with a question you could ask of one of the dataframes we've created for this lab. It could involve just the new voters, or the donors or the joined dataframe, but it cannot be a variation of a previous question (so, for example, you can't ask, "How many Republicans have given to Harris"). First write the question and then try to answer it by writing code. If you're not sure of the exact code, try googling (or ask me for advice) but, at a minimum, describe what you think you'd have to do to answer it and what the results would look like. That can help.

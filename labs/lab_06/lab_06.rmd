@@ -1,0 +1,211 @@
+---
+title: "lab_06"
+author: "derek willis"
+date: "2024-10-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## You will need
+
+-   Tabula
+
+## Load libraries and establish settings
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+
+# Load the tidyverse and any other libraries you'll need
+
+```
+
+## Get Our PDF
+
+We'll be working with the [Maryland monthly voter registration update](https://elections.maryland.gov/pdf/vrar/2024_09.pdf) from the State Board of Elections. You'll want to download it to a place you'll remember (like your Downloads folder, or the labs folder in your repository). The goal is to write a couple of paragraphs that summarize the changes in voter registration in Maryland during the month of September.
+
+## Setup Tabula
+
+Start Tabula, then go to <http://127.0.0.1:8080/> in your browser. Click the "Browse" button and find the PDF file and click "open", and then click the "Import button" in Tabula. This will take a few seconds.
+
+This PDF has multiple possible tables to extract. We're going to make four dataframes: 
+
+* new registrations by party
+* removals by party
+* changes in registration
+* current registrations by county.
+
+You will need to draw boxes around four sections and export four CSV files that you will load into R. In Tabula, draw a box around the borders of those tables and click the "Preview & Export Extracted Data" button for each one. The export should look pretty clean, but might be missing some column headers. You'll need to include total columns.
+
+Export each CSV (each one should be called `tabula-2024-09.csv` by default, so you should rename them for clarity) to your lab_06/data folder.
+
+From there, you will need to read in and clean up the data, and in particular the headers. You can choose to include the headers from the PDF in your exported CSV files OR to exclude them and add them when importing. The pre_lab has an example of how to do this!
+
+## Load and clean up the data in R
+
+You will need to read in and clean up the data so that it can be used for analysis. By "clean" I mean the column headers must not contain spaces and they should have meaningful names, not "x1" or something similar. The current registrations dataframe *MUST* include the county name, but should not include the columns under `Changes` and `Party Affiliation From`. How you do that is up to you (and could involve something outside R), but you can use `select()` with or without the minus sign to include or exclude certain columns. You also can use the `rename` function to, well, rename columns.
+
+```{r}
+# Party registrations
+new_registrations_24 <- read_csv("data/new_party_registrations.csv")|>
+  rename(County = ...1)
+```
+
+```{r}
+# Removals
+party_removals_24 <- read_csv("data/removals.csv")|>
+  rename(Summary = ...1)
+```
+
+```{r}
+# Changes
+changes_registrations_24 <- read_csv("data/changes_registration.csv")|>
+  rename(County = ...1)
+```
+
+```{r}
+# Current registrations
+total_registrations_24 <- read_csv("data/current_registrations.csv")
+```
+
+## Rinse, Repeat: September 2022 data
+
+Do all of that again, for the [September 2022 voter registration update](https://elections.maryland.gov/pdf/vrar/2022_09.pdf), so we can compare the two. If you've done well, this is easy: just do the same steps in Tabula, export the files and use the same code to read in and clean up the data, *just remember to give these dataframes different names* so that you can compare September 2024 to September 2022.
+
+To answer the following questions, you'll need to calculate percentages and do other calculations. Whether you do that by combining or joining dataframes or you write code to run separately on both is up to you.
+
+```{r}
+# Party registrations
+new_registrations_22 <- read_csv("data/22_new_registrations.csv") |>
+  rename(County = ...1)
+```
+
+```{r}
+# Removals
+removals_22 <- read_csv("data/22_removals.csv")|>
+  rename(Summary = ...1)
+```
+
+```{r}
+# Changes
+changes_22 <- read_csv("data/22_changes.csv")|>
+  rename(County = ...1)
+```
+
+```{r}
+# Current registrations
+current_22 <- read_csv("data/22_current.csv")
+```
+
+## Answer questions
+
+Q1. Calculate the percentage of registered Democrats, Republicans and unaffiliated voters for the entire state in September 2024 and September 2022, and then calculate the percentage change for those three party categories (the formula for percentage change is easy to remember: (New-Old)/Old). How would you describe the changes in these partisan categories in a story? What's the most interesting thing about these changes that would be the lede of that story?
+
+A1.
+
+```{r}
+total_registrations_24 <- total_registrations_24 |>
+  #filter(COUNTY != "TOTAL") |>
+  mutate(
+    pct_dem_24 = DEM / TOTAL * 100,
+    pct_rep_24 = REP / TOTAL * 100,
+    pct_unaff_24 = UNAF / TOTAL * 100
+  )
+
+current_22 <- current_22|>
+  filter(COUNTY != "TOTAL") |>
+  mutate(
+    pct_dem_22 = DEM / TOTAL * 100,
+    pct_rep_22 = REP / TOTAL * 100,
+    pct_unaff_22 = UNAF / TOTAL * 100
+  )
+
+combined_data <- left_join(total_registrations_24, current_22, by = "COUNTY") |>
+  mutate(
+    pct_dem_change = (pct_dem_24 - pct_dem_22) / pct_dem_22 * 100,
+    pct_rep_change = (pct_rep_24 - pct_rep_22) / pct_rep_22 * 100,
+    pct_unaff_change = (pct_unaff_24 - pct_unaff_22) / pct_unaff_22 * 100
+  )
+
+combined_data |>
+  select(COUNTY, pct_unaff_change, pct_dem_change, pct_rep_change) |>
+  arrange(desc(pct_unaff_change))
+  
+```
+
+Q2. Among the Maryland jurisdictions with the most registered voters, which one had the biggest percentage increase in unaffiliated voters between 2022 and 2024? How did that county vote for governor in 2022 and for president in 2020? Contrast the partisan percentages of that county with the county that had the eighth-largest percentage increase in unaffiliated voters. You should display information from the data that shows the counties with the largest percentage increase first.
+
+A2. PG County had the highest percentage increase in unaffiliated voters with over a 15% increase. PG County voted for Wes Moore (Dem) in 2022 and Biden in 2020. Howard County had the 8th highest percentage increase of unaffiliated voters with a 7% increase, saw a 1.8% decrease in Democrats and a 4.3% decrease in Republicans. PG County, on the other hand, saw a 3.4% decrease in Democrats but a 3.9% increase in Republicans.
+
+```{r}
+new_registrations_24 <- new_registrations_24 |>
+  #filter(COUNTY != "TOTAL") |>
+  mutate(
+    pct_dem_24 = DEM / TOTAL * 100,
+    pct_rep_24 = REP / TOTAL * 100,
+    pct_unaff_24 = UNAF / TOTAL * 100
+  )
+
+new_registrations_22 <- new_registrations_22|>
+  mutate(
+    pct_dem_22 = DEM / TOTAL * 100,
+    pct_rep_22 = REP / TOTAL * 100,
+    pct_unaff_22 = UNAF / TOTAL * 100
+  )
+
+
+```
+
+Q3. Do the party percentages of new registrants (% Dem, % Rep, % Unaffiliated) from September 2024 and September 2022 match the overall percentage of partisan registration in the state at those times?
+
+In other words, did new registrants mirror the overall partisan composition of the electorate, or were they different? Do any of the methods of registration vary significantly from the overall partisan pattern? Which method is worthy of further exploration?
+
+A3. I'm pretty sure that compared to the state as a whole, the percent of new registrations for Dems and Reps is pretty consistent, but the percentage of unaffiliated voters went wayyyyy up from 2022 to 2024, which makes a lot of sense considering the dissatisfaction of the previous administration (Biden) while also a stronger dissatisfaction with the one before that (Trump). I used voter registration data from the MD Board of Elections website for 2022 and 2024 and tried to use that to look at the numbers and compare to the new registration data I had imported previously. I think it would definitely be interesting to look at the jump in unaffiliated voters from 2022 to 2024 and figure out why that trend is (although I'm sure I could tell you, but reporting is what makes it real and cool).
+
+```{r}
+eligible_voters_24 <- read_csv("data/eligible_voters_24.csv")
+
+eligible_voters_22 <- read_csv("data/eligible_voters_22.csv")
+
+
+eligible_voters_24 <- eligible_voters_24 |>
+  mutate(
+    pct_dem_24 = DEM / TOTAL * 100,
+    pct_rep_24 = REP / TOTAL * 100,
+    pct_unaff_24 = UNA / TOTAL * 100
+  )
+
+eligible_voters_22 <- eligible_voters_22 |>
+  mutate(
+    pct_dem_22 = DEM / TOTAL * 100,
+    pct_rep_22 = REP / TOTAL * 100,
+    pct_unaff_22 = UNA / TOTAL * 100
+  )
+overall_voters <- left_join(eligible_voters_24, eligible_voters_22, by = "County") |>
+  mutate(
+    pct_dem_change = (pct_dem_24 - pct_dem_22) / pct_dem_22 * 100,
+    pct_rep_change = (pct_rep_24 - pct_rep_22) / pct_rep_22 * 100,
+    pct_unaff_change = (pct_unaff_24 - pct_unaff_22) / pct_unaff_22 * 100
+  )
+
+overall_voters |>
+  select(County, pct_unaff_change, pct_dem_change, pct_rep_change)
+```
+
+Q4. Choose your own adventure! Using both the 2024 and 2022 data for one of the dataframes (changes, removals or new registrations), ask and answer a question that makes at least one comparison and requires code to answer. That could involve calculating a percentage, percentage change or the raw difference between two columns.
+
+A4.
+
+```{r}
+
+```
+
+Q5. What's the best story idea or question you've seen as a result of the work you've done in this lab?
+
+A5. I think the best story idea from this data is the dramatic increase in unaffiliated voters. I'm sure it already exists since we are now in 2025, but I think it would be really cool to look at the increase in unaffiliated voters and assign a reason - go out into the counties with the biggest increase in unaffiliated voters and talk to them - why did they register as unaffiliated? Is it because they hate both the parties flat out or because neither of the candidates were satisfactory to them? Or another reason?
