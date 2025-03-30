@@ -200,10 +200,16 @@ overall_voters |>
 
 Q4. Choose your own adventure! Using both the 2024 and 2022 data for one of the dataframes (changes, removals or new registrations), ask and answer a question that makes at least one comparison and requires code to answer. That could involve calculating a percentage, percentage change or the raw difference between two columns.
 
-A4.
+A4. I decided to look at the overall voters (total registered in 2022 and 2024) and use the code that I wrote for the previous question (that I don't think I needed so I'm counting that as my new code for this question) to look at the counties with the most significant changes in Republican and Democrat registrants. I found that Cecil County had by far the biggest jump in Republican voters with a nearly 7% increase, which kind of makes sense considering it is a land-heavy county that's basically in Pennsylvania. When looking at the counties for the highest increase in registered Democrats, I saw that none of the states had an increase at all. Frederick County had the highest increase at a loss of 1.4%. For a story, I could follow this trend and figure out why it appears that Democrats failed Marylanders (and the rest of the county) in the last 2 years.
 
 ```{r}
+overall_voters |>
+  select(County, pct_unaff_change, pct_dem_change, pct_rep_change) |>
+  arrange(desc(pct_rep_change))
 
+overall_voters |>
+  select(County, pct_unaff_change, pct_dem_change, pct_rep_change) |>
+  arrange(desc(pct_dem_change))
 ```
 
 Q5. What's the best story idea or question you've seen as a result of the work you've done in this lab?
