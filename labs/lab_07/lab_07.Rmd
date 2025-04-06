@@ -35,7 +35,9 @@ You'll need your Census API Key:
 **Task** set your API Key *only* if you haven't already
 
 ```{r echo=FALSE}
-census_api_key("YOUR API KEY", overwrite=TRUE)
+census_api_key("9f368abcbe314883c632793ca1ed242c34bf40cc", install=TRUE, overwrite=TRUE)
+readRenviron("~/.Renviron")
+Sys.getenv("CENSUS_API_KEY")
 ```
 
 ## Load and view ACS variables
@@ -45,22 +47,30 @@ You'll also need to load the list of American Community Survey variables from th
 **Task** load the variables from the 2022 5-year ACS and save them to a dataframe
 
 ```{r}
+acs5 <- load_variables(2022, "acs5", cache = TRUE)
+view(acs5)
 ```
 
 ## Answer questions
 
 **Q1** What is the Maryland jurisdiction with the lowest median age, according to the ACS 2022 5-year estimates? You will need to find the variable for median age first.
 
-**A1**
+**A1** Baltimore City has the lowest median age in Maryland according to the ACS 5-year estimates at 36.1.
 
 ```{r}
+md_median_age <- get_acs(geography = "county", variables = "B01002_001E", state = "MD")
+
+md_median_age |>
+  arrange(estimate)
 ```
 
 **Q2** Which Maryland counties have a median age of at least 50? You can use the dataframe you just made to answer this, but you must write code to display only those counties with a median age of at least 50.
 
-**A2**
+**A2** Talbot and Worcester Counties are the only two counties in Maryland with a median age of at least 50 (that's crazy).
 
 ```{r}
+md_median_age |>
+  filter(estimate >= 50)
 ```
 
 ## Ticket-Splitting
@@ -72,28 +82,102 @@ Ticket-splitting (voting for candidates from multiple parties) in today's politi
 Load the two CSV files in the `data` folder: one containing the ballot choices of Frederick voters in five races (governor, comptroller, attorney general and U.S. House) and the other containing information about Frederick's voting locations. You'll need to join them together.
 
 ```{r}
+frederick_ballot <- read_csv("data/frederick_cvr.csv")
+frederick_precincts <- read_csv("data/frederick_precincts.csv")
+
+combined_frederick <- left_join(frederick_ballot, frederick_precincts, by = "precinct")
 
 ```
 
 **Q3** Let's answer some basic questions about ticket-splitting: how many voters voted for different parties in the governor and comptroller's race? How many voted for the same party in both races? What percentage of all voters split their tickets in those races? In how many cases did voters choose the same party in all five contests? What percentage of all voters does that represent?
 
-**A3**
+**A3** 11,871 voted for different, 95,221 voted for the same, 11% of voters split, 89,916 voted for the same party, 84% of all total voters
 
 ```{r}
+#voters that voted for different parties in govenor and comprtoller's races
+combined_frederick |>
+  filter(governor_lt_governor != comptroller) |>
+  summarise(count = n())
+
+#voters that voted for the same party in both races
+combined_frederick |>
+  filter (governor_lt_governor == comptroller) |>
+  nrow()
+
+#percent of voters split tickets
+combined_frederick |>
+  mutate(
+    split_governor = case_when(governor_lt_governor != comptroller ~ TRUE, TRUE ~ FALSE) 
+  ) |>
+  group_by(split_governor) |>
+  summarise(count=n()) |>
+  mutate(percentage = count/sum(count))
+  
+
+#same party in all races
+combined_frederick |>
+  mutate(
+    not_split = case_when(
+      governor_lt_governor == comptroller & comptroller == attorney_general & attorney_general == u_s_senator & u_s_senator == representative_in_congress_6 ~ TRUE, TRUE ~ FALSE)
+    ) |>
+  group_by(not_split) |>
+  summarise(count=n()) |>
+  mutate(percentage = count/sum(count))
 
 ```
 
 **Q4** Now let's look for the zip codes where voters preferred Republicans in every race *except* the governor's race, where Dan Cox lost to Wes Moore by a wide margin. Write code to generate a dataframe of zip codes with the number of those voters for each of those zip codes, ordering the dataframe so that the zip code with the most ticket-splitters appears first.
 
-**A4**
+**A4** 21702 had the highest percentage of ticket-splitters with 17%.
 
 ```{r}
-
+ticket_splitters <- combined_frederick |>
+  mutate(
+    fuck_cox = case_when(
+      governor_lt_governor != "REP" & comptroller == "DEM" & attorney_general == "DEM" & u_s_senator == "DEM" & representative_in_congress_6  == "DEM" ~ "Yes",
+      TRUE ~ "No")
+    ) |>
+  filter(fuck_cox == "Yes") |>
+  group_by(fuck_cox, zipcode) |>
+  summarise(count=n()) |>
+  mutate(percentage = count/sum(count)) |>
+  arrange(desc(percentage)) |>
+view(ticket_splitters)
 ```
 
 **Q5** Let's find out more about those zip codes from A4. Using tidycensus, get a dataframe of Maryland zip codes and their median ages, then join it to the dataframe you produced in A4. NOTE: you'll need to ensure that the two columns you use for the join are the same datatype. Summarize your findings; how would you describe the zip codes with more non-Cox Republicans compared to those with fewer? Where are those leading zip codes located?
 
-**A5**
+**A5** Unfortunately my Census API key decided to get angry with me and not work anymore. I wrote a comment in the code but I'll say it again here - I wrote the code I would've written if it worked and now I am just praying that the code works.
 
 ```{r}
+#my API key officially gave up on me. I don't know why it won't work anymore, I tried to get a new one and it said it was expired, I then did that 3 more times and nothing. So I will write the code I intended to write and pray it works. 
+zip_median_age <- get_acs(
+  geography = "zcta",
+  variables = "B01002_001",
+  year = 2022,
+  survey = "acs5"
+)
+#make sure the zipcode columns are in the same datatype
+zip_median_age <- zip_median_age |>
+  select(GEOID, estimate) |>
+  rename(zipcode = GEOID, median_age = estimate) |>
+  mutate(zipcode = as.character(zipcode))
+
+combined_frederick <- combined_frederick |>
+  mutate(zipcode = as.character(zipcode))
+
+#join the 2 tables
+joined_data <- left_join(combined_frederick, zip_median_age, by = "zipcode") 
+
+#recreate the column with non-Cox republicans, sort by median age within zipcodes
+joined_data <- joined_data |>
+  mutate(
+    fuck_cox = case_when(
+      governor_lt_governor != "REP" & comptroller == "DEM" & attorney_general == "DEM" & u_s_senator == "DEM" & representative_in_congress_6  == "DEM" ~ "Yes",
+      TRUE ~ "No")) |>
+   group_by(fuck_cox) |>
+  summarise(
+    avg_median_age = mean(median_age, na.rm = TRUE),
+    n_zipcodes = n()
+  )
 ```
