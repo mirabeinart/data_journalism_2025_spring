@@ -33,7 +33,7 @@ detail_sod <- detail_sod %>%
   mutate(PERFORM_END_DT=dmy(PERFORM_END_DT))
 ```
 ```{r}
-write_csv(detail_sod, "detail_sod_clean.csv")
+write_csv(detail_sod, "data/detail_sod_clean.csv")
 ```
 
 ```{r}
