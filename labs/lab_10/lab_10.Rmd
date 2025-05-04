@@ -103,27 +103,169 @@ mapview(md_map_data, zcol = "difference", legend = TRUE)
 
 Also answer this: is a map the best way to present this data? What else could you make that might convey more information?
 
-**A2.**
+**A2.** Allegany County is the only county where Trump got a higher percentage of votes than Hogan. I highlighted this by outlining the county in a darker line to draw attention, and including that information in the subtitle/description part of the map. I think a bar chart/graph could be more useful for this data because it would give raw numbers, showing the difference in votes for Trump and Hogan in each county.
 
 ```{r}
-md_pres <- read_csv("data/md_pres_county_24") |>
-  clean_names()
+#load the new data
+md_pres <- read_csv("data/md_pres_county_24.csv") |>
+  clean_names() |>
+  mutate(total = harris + trump + oliver + stein + kennedy,
+         trump_pct = trump / total * 100)
+
+#make new dataset form Q1 data using just the information i need
+senate_for_pres <- md_senate |>
+  select(county, hogan, total) |>
+  mutate(real_hogan = hogan / total * 100)
+
+#join the data
+pres_map <- md_pres |>
+  left_join(senate_for_pres, by = c("county" = "county")) |>
+  mutate(trumpy = real_hogan - trump_pct)
+
+#join with county data
+mappy_map_pres <- md_counties |>
+  left_join(pres_map, by = c("NAME" = "county"))
+
+#make a new dataset for Allegany outline 
+allegany_outline <- mappy_map_pres |> 
+  filter(NAME == "Allegany")
+
+#make the mf map
+ggplot(mappy_map_pres) +
+  geom_sf(aes(fill = trumpy), color = "white") +
+   geom_sf(data = allegany_outline, fill = NA, color = "black", size = 2.5) +
+  scale_fill_gradient(
+    low = "#fee5d9",    # light red
+    high = "#a50f15",   # dark red
+    name = "difference"
+  ) +
+  labs(
+    title = "County-Level Difference: Trump vs. Hogan (2024)",
+    subtitle = "Allegany County was the only county that saw a higher percentage of votes for Trump than Hogan.",
+    caption = "Source: Maryland Board of Elections"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),       # remove lat/lon numbers
+    axis.ticks = element_blank(),      # remove tick marks
+    panel.grid = element_blank()       # remove grid lines #thanks chat for this one!!!!
+  )
 
 ```
 
+
+
 **Q3** Make another map showing the difference between Larry Hogan's county-level performance this year and from his governor race in 2018, using percentages to compare the two as you did in Q2. You can use the dataframe you initially loaded for Q1, and you'll need to load the 2018 governor results in the data folder and join them to it before proceeding. Are there any counties where Hogan did better this year? How would you describe the map showing the difference?
 
-**A3**
+**A3** There are no counties where Hogan did better in 2024 than in 2018. The map shows that Hogan's support has decreased in every county, with the most significant drop in Baltimore City. This is interesting considering the nation-wide shift towards Republican candidates that happened this past year.
 
 ```{r}
+#load 2018 data
+
+gov_2018 <- read_csv("data/md_gov_county_18.csv") |>
+  clean_names() |>
+  mutate(total = hogan + jealous + quinn + schlakman + write_ins,
+         hogan_pct18 = hogan / total * 100)
+
+#the 2018 data had a random weird space in Saint Mary's like literally what I was talking about in class???? wtf????? thank you chat for helping me fix this.
+gov_2018 |> filter(str_detect(county, "Mary"))
+senate_for_pres |> filter(str_detect(county, "Mary"))
+
+charToRaw(gov_2018$county[which(str_detect(gov_2018$county, "Mary"))])
+charToRaw(senate_for_pres$county[which(str_detect(senate_for_pres$county, "Mary"))])
+
+library(stringr)
+
+clean_county <- function(x) {
+  x |>
+    str_replace_all("\u00A0", " ") |>  # replace non-breaking space with real space
+    str_replace_all("’", "'") |>       # smart quote to straight
+    str_squish()
+}
+
+gov_2018 <- gov_2018 |> mutate(county = clean_county(county))
+senate_for_pres <- senate_for_pres |> mutate(county = clean_county(county))
+
+#join the datas
+gov_comparison <- gov_2018 |>
+  left_join(senate_for_pres, by = c("county" = "county")) |>
+  rename(hogan_24 = real_hogan) |>
+  rename(hogan_18 = hogan_pct18) |>
+  mutate(hogan_difference = hogan_24 - hogan_18)
+
+#make the mf map again
+hogan_map_data <- md_counties |>
+  left_join(gov_comparison, by = c("NAME" = "county"))
+
+ggplot(hogan_map_data) +
+  geom_sf(aes(fill = hogan_difference), color = "white") +
+  scale_fill_gradient2(
+    low = "#fdae61",
+    mid = "white",
+    high = "#1a9850",
+    name = "Hogan 2024 - 2018 (%)"
+  ) +
+  labs(
+    title = "Hogan saw a higher percentage of votes in every county in 2018 than in 2024",
+    subtitle = "The darker the orange fill of the county, the stronger the support Hogan received in 2018 compared to 2024.",
+    caption = "Source: Maryland Board of Elections"
+  ) +
+  coord_sf(datum = NA) +
+   theme_minimal() +
+  theme(
+    axis.text = element_blank(),       # remove lat/lon numbers
+    axis.ticks = element_blank(),      # remove tick marks
+    panel.grid = element_blank()       # remove grid lines #thanks chat for this one!!!!
+  )
 ```
 
 **Q4.** Choose your own map adventure! In the data folder I've included Maryland county-level results for the abortion rights amendment vote this year, plus the 2020 presidential results by county and 2022 governor's results by county. Using one of those and at least one other contest for comparison, make a county-level map showing what you think is the most interesting aspect of that data, and describe the results in terms of a possible story. You can bring in other data, such as Census information, if you like.
 
-**A4.**
+**A4.** I compared the support between Hogan and the abortion question, and the map was really interesting. It shows that Hogan did much better in the counties on the borders of the state, most of which are more rural. However, the abortion question got a higher percentage of votes in more metropolitan areas, like Moco, PG County, and Baltimore City and County.
 
 ```{r}
+#load abortion data
+abortion_24 <- read_csv("data/md_abortion_24.csv") |>
+  clean_names() |>
+  mutate(total = `for` + against,
+         for_pct = `for` / total * 100,
+         against_pct = against / total * 100,
+         difference = for_pct - against_pct)
 
+#join to senate results from 2024
+joined_abortion <- abortion_24 |>
+  left_join(md_senate, by = c("county" = "county"))
+
+#join with county data
+abortion_map_data <- md_counties |>
+  left_join(joined_abortion, by = c("NAME" = "county"))
+
+#adding a column for the difference between for Hogan and for abortion
+abortion_map_data <- abortion_map_data |>
+  mutate(
+    hogan_gap = hogan - `for`,   # if both are raw vote counts
+    hogan_gap_pct = hogan_pct - (`for` / (`for` + against) * 100)
+  )
+#making map
+ggplot(abortion_map_data) +
+  geom_sf(aes(fill = hogan_gap_pct), color = "white") +
+  scale_fill_gradient2(
+    low = "#0570b0", mid = "white", high = "#ca0020",
+    midpoint = 0,
+    name = "Hogan - Abortion Support (%)"
+  ) +
+  labs(
+    title = "Hogan vs. Abortion Support in Maryland",
+    subtitle = "Hogan did better compared to the abortion question in more rural counties, \nwhile the abortion question did better in metropolitan, more populated areas.",
+    caption = "Source: Maryland Board of Elections"
+  ) +
+  coord_sf(datum = NA) +
+   theme_minimal() +
+  theme(
+    axis.text = element_blank(),       # remove lat/lon numbers
+    axis.ticks = element_blank(),      # remove tick marks
+    panel.grid = element_blank()       # remove grid lines #thanks chat for this one!!!!
+  )
 ```
 
 -30-
